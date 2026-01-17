@@ -1,0 +1,57 @@
+services:
+  # NestJS Backend Application
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: dexa-backend
+    restart: unless-stopped
+    ports:
+      - '${BFF_PORT:-3000}:3000'
+    environment:
+      NODE_ENV: production
+      PORT: ${BFF_PORT:-3000}
+
+      # Database Configuration - Connect to host machine's PostgreSQL
+      DB_HOST: host.docker.internal
+      DB_PORT: ${DB_PORT:-5432}
+      DB_USERNAME: ${DB_USERNAME:-dev_user}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_DATABASE: ${DB_DATABASE:-dexa_attendance_db}
+
+      # JWT Configuration
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-7d}
+
+      # Cloudinary Configuration
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+
+      # Microservices Ports
+      BFF_PORT: ${BFF_PORT:-3000}
+      AUTH_PORT: ${AUTH_PORT:-3001}
+      EMPLOYEE_PORT: ${EMPLOYEE_PORT:-3002}
+      ATTENDANCE_PORT: ${ATTENDANCE_PORT:-3003}
+      UPLOAD_PORT: ${UPLOAD_PORT:-3004}
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    networks:
+      - dexa-network
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "require('http').get('http://localhost:3000/api', (r) => {process.exit(r.statusCode === 404 ? 0 : 1)})",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  dexa-network:
+    driver: bridge
